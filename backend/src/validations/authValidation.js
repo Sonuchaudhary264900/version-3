@@ -25,8 +25,20 @@ const validateSendOTP = [
   body("phone")
     .notEmpty()
     .withMessage("Phone number is required")
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage("Invalid phone number format")
+    .customSanitizer((value) => (value == null ? "" : String(value)).replace(/\D/g, ""))
+    .custom((value) => {
+
+      if (/^[6-9]\d{9}$/.test(value)) {
+        return true;
+      }
+
+      if (/^91[6-9]\d{9}$/.test(value)) {
+        return true;
+      }
+
+      throw new Error("Invalid phone number format");
+
+    })
 ];
 
 
@@ -37,8 +49,20 @@ const validateVerifyOTP = [
   body("phone")
     .notEmpty()
     .withMessage("Phone number is required")
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage("Invalid phone number format"),
+    .customSanitizer((value) => (value == null ? "" : String(value)).replace(/\D/g, ""))
+    .custom((value) => {
+
+      if (/^[6-9]\d{9}$/.test(value)) {
+        return true;
+      }
+
+      if (/^91[6-9]\d{9}$/.test(value)) {
+        return true;
+      }
+
+      throw new Error("Invalid phone number format");
+
+    }),
 
   body("otp")
     .notEmpty()

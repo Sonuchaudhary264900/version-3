@@ -8,6 +8,29 @@ const asyncHandler = require("../utils/asyncHandler");
 const ERROR_MESSAGES = require("../constants/errorMessages");
 
 
+/* ================= PHONE NORMALIZATION ================= */
+
+const normalizePhone = (phone) => {
+
+  if (typeof phone !== "string") {
+    return null;
+  }
+
+  const digits = phone.replace(/\D/g, "");
+
+  if (digits.length === 10) {
+    return digits;
+  }
+
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return digits.slice(2);
+  }
+
+  return null;
+
+};
+
+
 /* ================= TOKEN GENERATOR ================= */
 
 const generateToken = (userId) => {
@@ -27,9 +50,9 @@ const generateToken = (userId) => {
 
 exports.sendOTP = asyncHandler(async (req, res) => {
 
-  const { phone } = req.body;
+  const phone = normalizePhone(req.body.phone);
 
-  if (!phone || !/^[0-9]{10}$/.test(phone)) {
+  if (!phone) {
 
     return res.status(400).json({
       success: false,
@@ -55,7 +78,18 @@ exports.sendOTP = asyncHandler(async (req, res) => {
 
   /* Send OTP */
 
-  await smsService.sendOTP(phone, otp);
+  const smsResult = await smsService.sendOTP(phone, otp);
+
+  if (!smsResult.success) {
+
+    otpService.clearOTP(phone);
+
+    return res.status(502).json({
+      success: false,
+      message: "Unable to send OTP right now. Please try again."
+    });
+
+  }
 
   res.status(200).json({
     success: true,
@@ -69,7 +103,8 @@ exports.sendOTP = asyncHandler(async (req, res) => {
 
 exports.verifyOTP = asyncHandler(async (req, res) => {
 
-  const { phone, otp } = req.body;
+  const phone = normalizePhone(req.body.phone);
+  const { otp } = req.body;
 
   if (!phone || !otp) {
 
